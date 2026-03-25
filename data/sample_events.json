@@ -1,0 +1,120 @@
+[
+  {
+    "name": "Normal Web Session",
+    "description": "Benign internal user browsing an internal dashboard.",
+    "event": {
+      "srcip": "10.10.2.15",
+      "destip": "10.10.0.25",
+      "destport": 443,
+      "protocol": "tcp",
+      "message": "Normal web access from finance workstation",
+      "rule": {
+        "level": 3,
+        "description": "Routine HTTPS request"
+      },
+      "network": {
+        "bytes": 18240,
+        "packets": 76,
+        "duration": 145
+      },
+      "auth": {
+        "failures": 0
+      },
+      "event": {
+        "dataset": "web",
+        "category": "network"
+      },
+      "agent": {
+        "name": "finance-pc-01"
+      }
+    }
+  },
+  {
+    "name": "SSH Brute Force",
+    "description": "External attacker repeatedly failing SSH authentication.",
+    "event": {
+      "srcip": "185.44.9.10",
+      "destip": "10.0.0.15",
+      "destport": 22,
+      "protocol": "tcp",
+      "message": "Brute force login failed against ssh service",
+      "rule": {
+        "level": 12,
+        "description": "Multiple authentication failures detected on SSH"
+      },
+      "network": {
+        "bytes": 12400,
+        "packets": 155,
+        "duration": 18
+      },
+      "auth": {
+        "failures": 21
+      },
+      "labels": {
+        "same_source_hits": 9
+      },
+      "event": {
+        "dataset": "ssh",
+        "category": "authentication"
+      },
+      "agent": {
+        "name": "linux-web-01"
+      }
+    }
+  },
+  {
+    "name": "Volumetric DDoS",
+    "description": "Web service hit by high-rate traffic spike.",
+    "event": {
+      "srcip": "198.51.100.44",
+      "destip": "10.0.0.80",
+      "destport": 443,
+      "protocol": "tcp",
+      "message": "Potential DDoS traffic spike and flood behaviour detected",
+      "rule": {
+        "level": 14,
+        "description": "Volumetric flood against public HTTPS endpoint"
+      },
+      "network": {
+        "bytes": 850000,
+        "packets": 9200,
+        "duration": 14
+      },
+      "event": {
+        "dataset": "network",
+        "category": "denial_of_service"
+      },
+      "agent": {
+        "name": "edge-proxy-01"
+      }
+    }
+  },
+  {
+    "name": "Malware Beaconing",
+    "description": "Endpoint appears to beacon to suspicious infrastructure.",
+    "event": {
+      "srcip": "10.20.4.8",
+      "destip": "45.129.33.7",
+      "destport": 4444,
+      "protocol": "tcp",
+      "message": "Suspicious malware beacon to command and control server",
+      "rule": {
+        "level": 13,
+        "description": "Possible trojan or C2 activity observed"
+      },
+      "network": {
+        "bytes": 226000,
+        "packets": 380,
+        "duration": 72
+      },
+      "event": {
+        "dataset": "endpoint",
+        "category": "malware"
+      },
+      "agent": {
+        "name": "sales-laptop-07"
+      }
+    }
+  }
+]
+

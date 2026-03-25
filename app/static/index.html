@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutomaticSOC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <main class="shell">
+      <section class="hero panel">
+        <div>
+          <p class="eyebrow">AI-assisted autonomous SOC demo</p>
+          <h1>AutomaticSOC</h1>
+          <p class="lead">
+            A presentable MVP of your team project: JSON log ingestion, Random Forest
+            threat classification, and automated SOC response recommendations.
+          </p>
+        </div>
+        <div class="hero-metrics">
+          <div class="metric">
+            <span class="metric-label">Model</span>
+            <strong id="metric-model">Loading...</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Accuracy</span>
+            <strong id="metric-accuracy">-</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Features</span>
+            <strong id="metric-features">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <p class="section-label">Pipeline</p>
+          <h2>How the detection flow works</h2>
+          <div class="steps">
+            <div class="step">
+              <span>1</span>
+              <p>Wazuh-like JSON alerts are ingested from endpoints and network logs.</p>
+            </div>
+            <div class="step">
+              <span>2</span>
+              <p>Security features are extracted from severity, traffic, and text indicators.</p>
+            </div>
+            <div class="step">
+              <span>3</span>
+              <p>A Random Forest model classifies the event into a threat family.</p>
+            </div>
+            <div class="step">
+              <span>4</span>
+              <p>Active-response guidance is generated with a risk score and command.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <p class="section-label">Controls</p>
+          <h2>Train the demo model</h2>
+          <p class="muted">
+            This project auto-trains on first use, but you can retrain manually before a demo.
+          </p>
+          <button id="train-model" class="accent-button">Retrain Demo Model</button>
+          <p id="train-status" class="status-text"></p>
+        </article>
+      </section>
+
+      <section class="panel analyzer">
+        <div class="analyzer-header">
+          <div>
+            <p class="section-label">Live demo</p>
+            <h2>Analyze a SOC event</h2>
+          </div>
+          <div id="sample-buttons" class="sample-buttons"></div>
+        </div>
+
+        <div class="analyzer-grid">
+          <div>
+            <label for="event-json">Event JSON</label>
+            <textarea id="event-json" spellcheck="false"></textarea>
+            <button id="analyze-button" class="primary-button">Analyze Event</button>
+            <p id="error-text" class="error-text"></p>
+          </div>
+
+          <div class="result-panel">
+            <div class="result-card">
+              <p class="section-label">Classification</p>
+              <div class="result-line">
+                <span>Label</span>
+                <strong id="result-label">-</strong>
+              </div>
+              <div class="result-line">
+                <span>Confidence</span>
+                <strong id="result-confidence">-</strong>
+              </div>
+              <div class="result-line">
+                <span>Risk score</span>
+                <strong id="result-risk">-</strong>
+              </div>
+              <div class="result-line">
+                <span>Severity</span>
+                <strong id="result-severity">-</strong>
+              </div>
+            </div>
+
+            <div class="result-card">
+              <p class="section-label">Response</p>
+              <p id="result-summary" class="muted">Run an analysis to see the event summary.</p>
+              <ul id="result-actions" class="action-list"></ul>
+              <code id="result-command" class="command-box">No active response generated yet.</code>
+            </div>
+
+            <div class="result-card">
+              <p class="section-label">Why the model decided this</p>
+              <ul id="result-rationale" class="action-list"></ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
+

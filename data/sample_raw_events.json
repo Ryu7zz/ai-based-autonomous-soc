@@ -1,0 +1,61 @@
+[
+  {
+    "name": "Wazuh SSH Alert",
+    "source": "wazuh",
+    "payload": {
+      "timestamp": "2026-03-25T10:21:00Z",
+      "rule": {
+        "level": 12,
+        "description": "Multiple authentication failures detected on sshd",
+        "firedtimes": 14,
+        "groups": [
+          "authentication_failed",
+          "sshd"
+        ]
+      },
+      "agent": {
+        "name": "linux-web-01"
+      },
+      "data": {
+        "srcip": "185.44.9.10",
+        "dstip": "10.0.0.15",
+        "dstport": "22",
+        "proto": "tcp",
+        "bytes": "15422",
+        "packets": "172",
+        "duration": "20",
+        "failed_attempts": "22"
+      }
+    }
+  },
+  {
+    "name": "ECS DDoS Signal",
+    "source": "ecs",
+    "payload": {
+      "@timestamp": "2026-03-25T10:33:00Z",
+      "message": "Traffic spike may indicate DDoS flood",
+      "source": {
+        "ip": "198.51.100.44"
+      },
+      "destination": {
+        "ip": "10.0.0.80",
+        "port": 443
+      },
+      "network": {
+        "transport": "tcp",
+        "bytes": 920000,
+        "packets": 8600
+      },
+      "event": {
+        "category": [
+          "network",
+          "denial_of_service"
+        ],
+        "dataset": "suricata.alert",
+        "duration": 21000000000,
+        "severity": 13
+      }
+    }
+  }
+]
+
