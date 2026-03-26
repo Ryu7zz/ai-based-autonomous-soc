@@ -72,6 +72,16 @@
             This project auto-trains on first use, but you can retrain manually before a demo.
           </p>
           <button id="train-model" class="accent-button">Retrain Demo Model</button>
+          <div class="wazuh-controls">
+            <label for="wazuh-train-limit">Wazuh train limit</label>
+            <input id="wazuh-train-limit" type="number" value="100000" min="1000" max="1000000" />
+            <button id="train-wazuh" class="accent-button">Retrain From Wazuh</button>
+          </div>
+          <div class="wazuh-controls">
+            <label for="wazuh-bulk-count">Wazuh bulk analyze count</label>
+            <input id="wazuh-bulk-count" type="number" value="100000" min="1000" max="1000000" />
+            <button id="analyze-wazuh-bulk" class="primary-button">Run Wazuh Bulk Analysis</button>
+          </div>
           <p id="train-status" class="status-text"></p>
         </article>
       </section>
@@ -126,6 +136,65 @@
               <ul id="result-rationale" class="action-list"></ul>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section class="panel wazuh-board">
+        <div class="analyzer-header">
+          <div>
+            <p class="section-label">Wazuh + AI decisions</p>
+            <h2>Structured Wazuh log decision dashboard</h2>
+            <p class="muted">
+              Each Wazuh event is analyzed by the Random Forest model and marked as
+              <strong>blocked</strong>, <strong>should_block</strong>, or <strong>monitor</strong>.
+            </p>
+          </div>
+          <div class="wazuh-board-controls">
+            <label for="wazuh-board-limit">Log count</label>
+            <input id="wazuh-board-limit" type="number" value="200" min="1" max="2000" />
+            <label for="wazuh-board-range">Time range</label>
+            <input id="wazuh-board-range" type="text" value="24h" />
+            <button id="refresh-wazuh-board" class="accent-button">Refresh Wazuh Logs</button>
+          </div>
+        </div>
+
+        <p id="wazuh-board-status" class="status-text"></p>
+
+        <div class="board-metrics">
+          <div class="metric">
+            <span class="metric-label">Analyzed</span>
+            <strong id="board-analyzed">-</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Blocked</span>
+            <strong id="board-blocked">-</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Should Block</span>
+            <strong id="board-should-block">-</strong>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Monitor</span>
+            <strong id="board-monitor">-</strong>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="decision-table" id="decision-table">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Rule</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>AI Label</th>
+                <th>Risk</th>
+                <th>Decision</th>
+                <th>How blocked</th>
+              </tr>
+            </thead>
+            <tbody id="decision-table-body"></tbody>
+          </table>
         </div>
       </section>
     </main>

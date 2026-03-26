@@ -34,7 +34,22 @@ class TrainRequest(BaseModel):
 class CICIDSTrainRequest(BaseModel):
     csv_path: str
     max_rows: int | None = Field(default=250000, ge=100, le=5_000_000)
+    normal_ratio: float = Field(default=0.8, ge=0.5, le=0.95)
     seed: int = Field(default=7, ge=1, le=999999)
+
+
+class WazuhTrainRequest(BaseModel):
+    limit: int = Field(default=100000, ge=1000, le=1_000_000)
+    time_range: str = "30d"
+    seed: int = Field(default=7, ge=1, le=999999)
+
+
+class WazuhBulkAnalyzeRequest(BaseModel):
+    target_count: int = Field(default=100000, ge=1000, le=1_000_000)
+    batch_size: int = Field(default=5000, ge=100, le=25000)
+    time_range: str = "30d"
+    include_samples: bool = False
+    sample_size: int = Field(default=20, ge=1, le=200)
 
 
 class ModelInfo(BaseModel):
@@ -75,12 +90,74 @@ class RawAnalyzeResponse(BaseModel):
     normalized_event: dict[str, Any] | None = None
 
 
+class WazuhBulkAnalyzeResponse(BaseModel):
+    requested_count: int
+    analyzed_count: int
+    label_counts: dict[str, int]
+    severity_counts: dict[str, int]
+    average_risk_score: float
+    high_risk_count: int
+    top_samples: list[PredictionResponse] = Field(default_factory=list)
+
+
+class WazuhDecisionLogEntry(BaseModel):
+    timestamp: str | None = None
+    event_id: str | None = None
+    wazuh_rule_id: str | None = None
+    wazuh_rule_description: str | None = None
+    source_ip: str | None = None
+    destination_ip: str | None = None
+    destination_port: str | int | None = None
+    model_label: str
+    model_confidence: float
+    risk_score: float
+    severity: str
+    decision: Literal["blocked", "should_block", "monitor"]
+    decision_reason: str
+    response_command: str | None = None
+    blocked_by_wazuh: bool = False
+    block_event_id: str | None = None
+    block_event_timestamp: str | None = None
+    block_event_rule_id: str | None = None
+    summary: str
+    full_log: str | None = None
+
+
+class WazuhDecisionBoardResponse(BaseModel):
+    requested_count: int
+    analyzed_count: int
+    blocked_count: int
+    should_block_count: int
+    monitor_count: int
+    rows: list[WazuhDecisionLogEntry] = Field(default_factory=list)
+
+
 class WebhookIngestResponse(BaseModel):
     status: str
     ingestion_id: str
     source: Literal["wazuh", "ecs"]
     processed_at: str
     result: PredictionResponse
+    normalized_event: dict[str, Any] | None = None
+
+
+class WazuhBlockRequest(BaseModel):
+    command: str = "firewall-drop"
+    srcip: str
+    timeout: int = 600
+    reason: str
+
+
+class WazuhDecisionResponse(BaseModel):
+    status: str
+    ingestion_id: str
+    source: Literal["wazuh"]
+    processed_at: str
+    should_block: bool
+    decision_reason: str
+    source_ip: str | None = None
+    result: PredictionResponse
+    wazuh_block_request: WazuhBlockRequest | None = None
     normalized_event: dict[str, Any] | None = None
 
 

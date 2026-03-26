@@ -1,0 +1,85 @@
+{
+  "result": {
+    "label": "Brute Force",
+    "confidence": 0.7733,
+    "risk_score": 78.83,
+    "severity": "high",
+    "summary": "185.44.9.10 -> 10.0.0.15:22 over tcp",
+    "recommended_actions": [
+      "Block the source IP on the firewall or Wazuh active response.",
+      "Force a credential reset for the targeted account or service.",
+      "Increase rate limits and MFA checks on the exposed login surface."
+    ],
+    "active_response_enabled": true,
+    "response_command": "iptables -A INPUT -s 185.44.9.10 -j DROP",
+    "rationale": [
+      "Model confidence for Brute Force is 77.3%.",
+      "Rule severity is elevated at level 12.",
+      "Multiple authentication failures suggest credential abuse.",
+      "The source IP appears to be external, increasing exposure risk."
+    ],
+    "features": {
+      "rule_level": 12.0,
+      "dest_port": 22.0,
+      "is_privileged_port": 1.0,
+      "is_ssh_port": 1.0,
+      "is_web_port": 0.0,
+      "protocol_code": 6.0,
+      "total_bytes": 15422.0,
+      "total_packets": 172.0,
+      "duration_seconds": 20.0,
+      "bytes_per_packet": 89.663,
+      "packets_per_second": 8.6,
+      "auth_failures": 22.0,
+      "same_source_hits": 14.0,
+      "severity_keyword_hits": 1.0,
+      "bruteforce_hint": 2.0,
+      "ddos_hint": 0.0,
+      "scan_hint": 0.0,
+      "malware_hint": 0.0,
+      "src_is_private": 0.0,
+      "dest_is_private": 1.0
+    }
+  },
+  "normalized_event": {
+    "timestamp": "2026-03-25T10:21:00Z",
+    "srcip": "185.44.9.10",
+    "destip": "10.0.0.15",
+    "destport": "22",
+    "protocol": "tcp",
+    "message": "Multiple authentication failures detected on sshd",
+    "action": null,
+    "attack_type": "authentication_failed, sshd",
+    "rule": {
+      "level": 12,
+      "description": "Multiple authentication failures detected on sshd",
+      "firedtimes": 14,
+      "id": null,
+      "groups": [
+        "authentication_failed",
+        "sshd"
+      ]
+    },
+    "network": {
+      "bytes": "15422",
+      "packets": "172",
+      "duration": 20.0,
+      "protocol": "tcp"
+    },
+    "auth": {
+      "failures": "22"
+    },
+    "event": {
+      "dataset": null,
+      "category": null,
+      "module": null,
+      "duration": 0.0
+    },
+    "agent": {
+      "name": "linux-web-01"
+    },
+    "labels": {
+      "same_source_hits": 14
+    }
+  }
+}

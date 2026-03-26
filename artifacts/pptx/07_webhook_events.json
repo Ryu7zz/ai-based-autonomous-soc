@@ -1,0 +1,15 @@
+[
+  {
+    "ingestion_id": "e43abe56-38de-4987-8fb9-ee79eb2954a7",
+    "source": "wazuh",
+    "processed_at": "2026-03-26T02:38:25.370542+00:00",
+    "label": "Brute Force",
+    "confidence": 0.74,
+    "risk_score": 76.7,
+    "severity": "high",
+    "srcip": "185.44.9.10",
+    "destip": "10.0.0.15",
+    "destport": "22",
+    "active_response_enabled": true
+  }
+]

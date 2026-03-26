@@ -1,0 +1,20 @@
+{
+  "model_name": "RandomForestClassifier",
+  "model_version": "0.1.0",
+  "trained_at": "2026-03-26T02:06:53.363211+00:00",
+  "dataset_rows": 1800,
+  "feature_count": 20,
+  "classes": [
+    "Brute Force",
+    "DDoS",
+    "Malware",
+    "Normal",
+    "Port Scan"
+  ],
+  "metrics": {
+    "accuracy": 1.0,
+    "macro_precision": 1.0,
+    "macro_recall": 1.0,
+    "macro_f1": 1.0
+  }
+}

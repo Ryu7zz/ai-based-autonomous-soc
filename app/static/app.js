@@ -20,6 +20,68 @@ function renderActions(items, targetId) {
   });
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function truncate(value, maxLength = 80) {
+  const text = String(value ?? "");
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, maxLength - 1)}...`;
+}
+
+function renderDecisionTable(rows) {
+  const body = document.getElementById("decision-table-body");
+  body.innerHTML = "";
+  rows.forEach((row) => {
+    const tr = document.createElement("tr");
+    const howBlocked = row.blocked_by_wazuh
+      ? `Wazuh blocked (rule ${row.block_event_rule_id || "651"})`
+      : row.response_command || "No block executed";
+    tr.innerHTML = `
+      <td title="${escapeHtml(row.timestamp || "")}">${escapeHtml(truncate(row.timestamp || "-", 22))}</td>
+      <td title="${escapeHtml(row.wazuh_rule_description || "")}">${escapeHtml((row.wazuh_rule_id || "-") + " " + truncate(row.wazuh_rule_description || "", 38))}</td>
+      <td>${escapeHtml(row.source_ip || "-")}</td>
+      <td>${escapeHtml((row.destination_ip || "-") + (row.destination_port ? `:${row.destination_port}` : ""))}</td>
+      <td>${escapeHtml(`${row.model_label} (${(row.model_confidence * 100).toFixed(1)}%)`)}</td>
+      <td>${escapeHtml(String(row.risk_score))}</td>
+      <td><span class="decision-pill decision-${escapeHtml(row.decision)}">${escapeHtml(row.decision)}</span><br/><small>${escapeHtml(truncate(row.decision_reason || "", 62))}</small></td>
+      <td title="${escapeHtml(row.full_log || "")}">${escapeHtml(truncate(howBlocked, 75))}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+async function refreshWazuhDecisionBoard() {
+  const statusNode = document.getElementById("wazuh-board-status");
+  const limit = Number.parseInt(document.getElementById("wazuh-board-limit").value, 10) || 200;
+  const time_range = (document.getElementById("wazuh-board-range").value || "24h").trim();
+
+  statusNode.textContent = `Loading ${limit} Wazuh logs and AI decisions...`;
+  try {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      time_range,
+    });
+    const board = await fetchJson(`/api/wazuh/decision-board?${params.toString()}`);
+    setText("board-analyzed", `${board.analyzed_count}`);
+    setText("board-blocked", `${board.blocked_count}`);
+    setText("board-should-block", `${board.should_block_count}`);
+    setText("board-monitor", `${board.monitor_count}`);
+    renderDecisionTable(board.rows || []);
+    statusNode.textContent = `Loaded ${board.analyzed_count} logs from Wazuh. Blocked: ${board.blocked_count}, should_block: ${board.should_block_count}, monitor: ${board.monitor_count}.`;
+  } catch (error) {
+    statusNode.textContent = "Could not load Wazuh decision board. Check Wazuh API settings and backend logs.";
+  }
+}
+
 function loadSample(event) {
   document.getElementById("event-json").value = JSON.stringify(event, null, 2);
   setText("error-text", "");
@@ -92,11 +154,61 @@ async function retrainModel() {
   }
 }
 
+async function retrainFromWazuh() {
+  const statusNode = document.getElementById("train-status");
+  const limit = Number.parseInt(document.getElementById("wazuh-train-limit").value, 10) || 100000;
+  statusNode.textContent = `Training from Wazuh (${limit} alerts)...`;
+  try {
+    const model = await fetchJson("/api/train/wazuh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ limit, time_range: "30d", seed: 7 }),
+    });
+    setText(
+      "train-status",
+      `Wazuh retraining complete. Rows: ${model.dataset_rows}, accuracy: ${(model.metrics.accuracy * 100).toFixed(1)}%.`
+    );
+    await refreshModelCard();
+  } catch (error) {
+    setText("train-status", "Wazuh retraining failed. Check WAZUH_API_URL and credentials.");
+  }
+}
+
+async function analyzeWazuhBulk() {
+  const statusNode = document.getElementById("train-status");
+  const target_count = Number.parseInt(document.getElementById("wazuh-bulk-count").value, 10) || 100000;
+  statusNode.textContent = `Running Wazuh bulk analysis for ${target_count} alerts...`;
+  try {
+    const summary = await fetchJson("/api/analyze/wazuh/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        target_count,
+        batch_size: 5000,
+        time_range: "30d",
+        include_samples: false,
+      }),
+    });
+    setText(
+      "train-status",
+      `Bulk analysis complete. Analyzed ${summary.analyzed_count}/${summary.requested_count}. Avg risk: ${summary.average_risk_score}. High risk: ${summary.high_risk_count}.`
+    );
+  } catch (error) {
+    setText("train-status", "Wazuh bulk analysis failed. Check API connectivity and credentials.");
+  }
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("analyze-button").addEventListener("click", analyzeCurrentEvent);
   document.getElementById("train-model").addEventListener("click", retrainModel);
+  document.getElementById("train-wazuh").addEventListener("click", retrainFromWazuh);
+  document.getElementById("analyze-wazuh-bulk").addEventListener("click", analyzeWazuhBulk);
+  document
+    .getElementById("refresh-wazuh-board")
+    .addEventListener("click", refreshWazuhDecisionBoard);
   try {
     await Promise.all([refreshModelCard(), loadSamples()]);
+    await refreshWazuhDecisionBoard();
   } catch (error) {
     setText("train-status", "The backend is not reachable yet. Start the FastAPI server first.");
   }

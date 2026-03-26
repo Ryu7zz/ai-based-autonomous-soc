@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-25T10:21:00Z",
+  "rule": {
+    "level": 12,
+    "description": "Multiple authentication failures detected on sshd",
+    "firedtimes": 14,
+    "groups": [
+      "authentication_failed",
+      "sshd"
+    ]
+  },
+  "agent": {
+    "name": "linux-web-01"
+  },
+  "data": {
+    "srcip": "185.44.9.10",
+    "dstip": "10.0.0.15",
+    "dstport": "22",
+    "proto": "tcp",
+    "bytes": "15422",
+    "packets": "172",
+    "duration": "20",
+    "failed_attempts": "22"
+  }
+}

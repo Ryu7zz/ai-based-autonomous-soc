@@ -1,0 +1,38 @@
+{
+  "label": "Normal",
+  "confidence": 1.0,
+  "risk_score": 38.0,
+  "severity": "low",
+  "summary": "10.10.2.15 -> 10.10.0.25:443 over tcp",
+  "recommended_actions": [
+    "Keep the event for analyst visibility.",
+    "Continue passive monitoring for correlated anomalies."
+  ],
+  "active_response_enabled": false,
+  "response_command": null,
+  "rationale": [
+    "Model confidence for Normal is 100.0%."
+  ],
+  "features": {
+    "rule_level": 3.0,
+    "dest_port": 443.0,
+    "is_privileged_port": 1.0,
+    "is_ssh_port": 0.0,
+    "is_web_port": 1.0,
+    "protocol_code": 6.0,
+    "total_bytes": 18240.0,
+    "total_packets": 76.0,
+    "duration_seconds": 145.0,
+    "bytes_per_packet": 240.0,
+    "packets_per_second": 0.524,
+    "auth_failures": 0.0,
+    "same_source_hits": 0.0,
+    "severity_keyword_hits": 0.0,
+    "bruteforce_hint": 0.0,
+    "ddos_hint": 0.0,
+    "scan_hint": 0.0,
+    "malware_hint": 0.0,
+    "src_is_private": 1.0,
+    "dest_is_private": 1.0
+  }
+}

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.model import build_cicids_dataset, train_cicids_model
+from app.model import build_cicids_dataset, rebalance_normal_attack_ratio, train_cicids_model
 
 
 def _build_small_cicids_csv(path: Path) -> None:
@@ -49,8 +49,26 @@ def test_train_cicids_model(tmp_path: Path) -> None:
     model_path = tmp_path / "trained.pkl"
     _build_small_cicids_csv(csv_path)
 
-    bundle = train_cicids_model(csv_path=csv_path, model_path=model_path, max_rows=180, seed=7)
+    bundle = train_cicids_model(
+        csv_path=csv_path,
+        model_path=model_path,
+        max_rows=180,
+        normal_ratio=0.8,
+        seed=7,
+    )
 
     assert model_path.exists()
     assert bundle.dataset_rows >= 100
     assert set(bundle.classes) >= {"Normal", "Brute Force", "DDoS", "Port Scan", "Malware"}
+
+
+def test_rebalance_normal_attack_ratio(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cicids.csv"
+    _build_small_cicids_csv(csv_path)
+    dataset = build_cicids_dataset(csv_path=csv_path, max_rows=180)
+
+    balanced = rebalance_normal_attack_ratio(dataset, normal_ratio=0.8, seed=7)
+    normal_count = int((balanced["label"] == "Normal").sum())
+    ratio = normal_count / len(balanced)
+
+    assert 0.75 <= ratio <= 0.85

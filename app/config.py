@@ -13,6 +13,22 @@ WEBHOOK_DB_PATH = Path(os.getenv("AUTOMATICSOC_DB_PATH", str(DATA_DIR / "automat
 APP_NAME = "AutomaticSOC"
 APP_DESCRIPTION = "AI-assisted autonomous SOC demo with Random Forest detection"
 
+WAZUH_API_URL = os.getenv("WAZUH_API_URL", "https://127.0.0.1:55000")
+WAZUH_API_USER = os.getenv("WAZUH_API_USER", "admin")
+WAZUH_API_PASSWORD = os.getenv("WAZUH_API_PASSWORD", "")
+WAZUH_API_TOKEN = os.getenv("WAZUH_API_TOKEN", "").strip()
+WAZUH_SOURCE_MODE = os.getenv("WAZUH_SOURCE_MODE", "auto").strip().lower()
+WAZUH_ALERTS_FILE = Path(
+    os.getenv("WAZUH_ALERTS_FILE", "/var/ossec/logs/alerts/alerts.json")
+).expanduser()
+WAZUH_API_VERIFY_SSL = os.getenv("WAZUH_API_VERIFY_SSL", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+WAZUH_MAX_BULK_ANALYSIS = max(int(os.getenv("WAZUH_MAX_BULK_ANALYSIS", "300000")), 1000)
+
 WEBHOOK_TOKEN = os.getenv("AUTOMATICSOC_WEBHOOK_TOKEN", "").strip() or None
 try:
     WEBHOOK_HISTORY_SIZE = max(int(os.getenv("AUTOMATICSOC_WEBHOOK_HISTORY_SIZE", "250")), 20)

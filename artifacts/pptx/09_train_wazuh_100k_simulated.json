@@ -1,0 +1,17 @@
+{
+  "model_name": "RandomForestClassifier",
+  "model_version": "0.1.0",
+  "trained_at": "2026-03-26T02:38:30.867093+00:00",
+  "dataset_rows": 100000,
+  "feature_count": 20,
+  "classes": [
+    "Incident",
+    "Normal"
+  ],
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  }
+}

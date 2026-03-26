@@ -1,0 +1,38 @@
+{
+  "requested_count": 100000,
+  "analyzed_count": 100000,
+  "label_counts": {
+    "Brute Force": 50000,
+    "Normal": 50000
+  },
+  "severity_counts": {
+    "critical": 50000,
+    "low": 50000
+  },
+  "average_risk_score": 67.41,
+  "high_risk_count": 49872,
+  "top_samples": [
+    {
+      "label": "Brute Force",
+      "confidence": 0.97,
+      "risk_score": 93.1,
+      "severity": "critical",
+      "summary": "High-severity simulated Wazuh alert",
+      "recommended_actions": [
+        "Contain source host",
+        "Block source IP",
+        "Review failed authentication patterns"
+      ],
+      "active_response_enabled": true,
+      "response_command": "agent_control -b 185.44.9.10",
+      "rationale": [
+        "High rule level and repeated auth failures",
+        "External source IP pattern"
+      ],
+      "features": {
+        "rule_level": 12.0,
+        "auth_failures": 20.0
+      }
+    }
+  ]
+}

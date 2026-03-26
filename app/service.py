@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections import defaultdict
 from datetime import datetime, timezone
 import logging
 from pathlib import Path
@@ -10,13 +11,24 @@ from uuid import uuid4
 
 import pandas as pd
 
-from app.config import MODEL_PATH, WEBHOOK_DB_PATH, WEBHOOK_HISTORY_SIZE
+from app.config import MODEL_PATH, WAZUH_MAX_BULK_ANALYSIS, WEBHOOK_DB_PATH, WEBHOOK_HISTORY_SIZE
 from app.features import event_to_features, summarize_event
 from app.model import ModelBundle, ensure_model, train_cicids_model, train_demo_model
 from app.normalize import normalize_security_event
 from app.response import build_response_plan
-from app.schemas import ModelInfo, PredictionResponse, StoredWebhookEvent, WebhookEventSummary
+from app.schemas import (
+    ModelInfo,
+    PredictionResponse,
+    WazuhBlockRequest,
+    WazuhDecisionResponse,
+    WazuhDecisionBoardResponse,
+    WazuhDecisionLogEntry,
+    StoredWebhookEvent,
+    WazuhBulkAnalyzeResponse,
+    WebhookEventSummary,
+)
 from app.storage import WebhookStorage
+from app.wazuh_client import WazuhClient
 
 
 logger = logging.getLogger(__name__)
@@ -49,16 +61,225 @@ class DetectionService:
         self._bundle = train_demo_model(model_path=self.model_path, samples=samples, seed=seed)
         return self.model_info()
 
+    def retrain_from_wazuh(self, limit: int = 100000, time_range: str = "30d", seed: int = 7) -> ModelInfo:
+        logger.info("Retraining model from Wazuh with limit %s over %s", limit, time_range)
+        client = WazuhClient()
+        features_list: list[dict[str, float]] = []
+        labels: list[str] = []
+        try:
+            for alert in client.iter_alerts(max_items=limit, batch_size=5000, time_range=time_range):
+                normalized = normalize_security_event(alert, source="wazuh")
+                features = event_to_features(normalized)
+                features_list.append(features)
+                labels.append("Incident" if features.get("rule_level", 0.0) > 4 else "Normal")
+        except Exception as error:
+            logger.error("Error fetching Wazuh alerts: %s", error)
+            raise ValueError(f"Wazuh fetch failed: {error}") from error
+
+        if len(labels) < 50:
+            logger.warning("Not enough data from Wazuh, falling back to demo model")
+            fallback_samples = max(min(limit, 20000), 1800)
+            return self.retrain_demo_model(samples=fallback_samples, seed=seed)
+
+        df = pd.DataFrame(features_list)
+        if df.empty:
+            raise ValueError("No trainable data returned from Wazuh alerts.")
+
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+
+        clf = RandomForestClassifier(n_estimators=100, random_state=seed)
+        clf.fit(df, labels)
+        preds = clf.predict(df)
+
+        bundle = ModelBundle(
+            model=clf,
+            feature_names=list(df.columns),
+            classes=list(clf.classes_),
+            trained_at=datetime.now(timezone.utc).isoformat(),
+            dataset_rows=len(labels),
+            metrics={
+                "accuracy": accuracy_score(labels, preds),
+                "precision": precision_score(labels, preds, average="macro", zero_division=0),
+                "recall": recall_score(labels, preds, average="macro", zero_division=0),
+                "f1": f1_score(labels, preds, average="macro", zero_division=0),
+            },
+        )
+
+        import pickle
+
+        self.model_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.model_path, "wb") as file_pointer:
+            pickle.dump(bundle, file_pointer)
+
+        self._bundle = bundle
+        return self.model_info()
+
+    def analyze_wazuh_bulk(
+        self,
+        target_count: int = 100000,
+        batch_size: int = 5000,
+        time_range: str = "30d",
+        include_samples: bool = False,
+        sample_size: int = 20,
+    ) -> WazuhBulkAnalyzeResponse:
+        capped_target = max(min(int(target_count), WAZUH_MAX_BULK_ANALYSIS), 1)
+        client = WazuhClient()
+
+        label_counts: dict[str, int] = defaultdict(int)
+        severity_counts: dict[str, int] = defaultdict(int)
+        sample_results: list[PredictionResponse] = []
+        analyzed_count = 0
+        total_risk = 0.0
+        high_risk_count = 0
+
+        try:
+            for alert in client.iter_alerts(
+                max_items=capped_target,
+                batch_size=batch_size,
+                time_range=time_range,
+            ):
+                result, _ = self.analyze_raw_event(payload=alert, source="wazuh")
+                analyzed_count += 1
+                label_counts[result.label] += 1
+                severity_counts[result.severity] += 1
+                total_risk += result.risk_score
+                if result.risk_score >= 75.0:
+                    high_risk_count += 1
+                if include_samples and len(sample_results) < sample_size:
+                    sample_results.append(result)
+        except Exception as error:
+            raise ValueError(f"Wazuh bulk analysis failed: {error}") from error
+
+        average_risk = round(total_risk / analyzed_count, 2) if analyzed_count else 0.0
+        return WazuhBulkAnalyzeResponse(
+            requested_count=capped_target,
+            analyzed_count=analyzed_count,
+            label_counts=dict(label_counts),
+            severity_counts=dict(severity_counts),
+            average_risk_score=average_risk,
+            high_risk_count=high_risk_count,
+            top_samples=sample_results,
+        )
+
+    def wazuh_decision_board(
+        self,
+        limit: int = 200,
+        time_range: str = "24h",
+    ) -> WazuhDecisionBoardResponse:
+        capped_limit = max(min(int(limit), 2000), 1)
+        client = WazuhClient()
+        alerts = list(
+            client.iter_alerts(
+                max_items=capped_limit,
+                batch_size=min(500, capped_limit),
+                time_range=time_range,
+            )
+        )
+
+        blocked_by_source: dict[str, dict[str, str | None]] = {}
+        for alert in alerts:
+            if not isinstance(alert, Mapping):
+                continue
+            rule = alert.get("rule", {})
+            if not isinstance(rule, Mapping):
+                rule = {}
+            rule_id = str(rule.get("id") or "")
+            description = str(rule.get("description") or "")
+            full_log = str(alert.get("full_log") or "")
+            is_block_event = (
+                rule_id == "651"
+                or "firewall-drop" in description.lower()
+                or "firewall-drop" in full_log.lower()
+            )
+            if not is_block_event:
+                continue
+            normalized = normalize_security_event(alert, source="wazuh")
+            srcip = normalized.get("srcip")
+            if not srcip:
+                continue
+            blocked_by_source[str(srcip)] = {
+                "event_id": str(alert.get("id") or "") or None,
+                "timestamp": str(alert.get("timestamp") or "") or None,
+                "rule_id": rule_id or None,
+            }
+
+        rows: list[WazuhDecisionLogEntry] = []
+        blocked_count = 0
+        should_block_count = 0
+        monitor_count = 0
+
+        for alert in alerts:
+            if not isinstance(alert, Mapping):
+                continue
+            result, normalized = self.analyze_raw_event(payload=alert, source="wazuh")
+
+            rule = alert.get("rule", {})
+            if not isinstance(rule, Mapping):
+                rule = {}
+
+            srcip = normalized.get("srcip")
+            block_evidence = blocked_by_source.get(str(srcip)) if srcip else None
+
+            if block_evidence:
+                decision = "blocked"
+                decision_reason = "Wazuh active response already blocked this source IP."
+                blocked_count += 1
+            elif result.active_response_enabled:
+                decision = "should_block"
+                decision_reason = "AI marked this as high risk and recommends active response."
+                should_block_count += 1
+            else:
+                decision = "monitor"
+                decision_reason = "Low risk right now; keep monitoring and correlate with future alerts."
+                monitor_count += 1
+
+            rows.append(
+                WazuhDecisionLogEntry(
+                    timestamp=str(alert.get("timestamp") or "") or None,
+                    event_id=str(alert.get("id") or "") or None,
+                    wazuh_rule_id=str(rule.get("id") or "") or None,
+                    wazuh_rule_description=str(rule.get("description") or "") or None,
+                    source_ip=str(srcip) if srcip else None,
+                    destination_ip=str(normalized.get("destip") or "") or None,
+                    destination_port=normalized.get("destport"),
+                    model_label=result.label,
+                    model_confidence=result.confidence,
+                    risk_score=result.risk_score,
+                    severity=result.severity,
+                    decision=decision,
+                    decision_reason=decision_reason,
+                    response_command=result.response_command,
+                    blocked_by_wazuh=block_evidence is not None,
+                    block_event_id=block_evidence["event_id"] if block_evidence else None,
+                    block_event_timestamp=block_evidence["timestamp"] if block_evidence else None,
+                    block_event_rule_id=block_evidence["rule_id"] if block_evidence else None,
+                    summary=result.summary,
+                    full_log=str(alert.get("full_log") or "") or None,
+                )
+            )
+
+        return WazuhDecisionBoardResponse(
+            requested_count=capped_limit,
+            analyzed_count=len(rows),
+            blocked_count=blocked_count,
+            should_block_count=should_block_count,
+            monitor_count=monitor_count,
+            rows=rows,
+        )
+
     def retrain_from_cicids(
         self,
         csv_path: Path,
         max_rows: int | None = None,
+        normal_ratio: float = 0.8,
         seed: int = 7,
     ) -> ModelInfo:
         self._bundle = train_cicids_model(
             csv_path=csv_path,
             model_path=self.model_path,
             max_rows=max_rows,
+            normal_ratio=normal_ratio,
             seed=seed,
         )
         return self.model_info()
@@ -152,6 +373,47 @@ class DetectionService:
     ) -> tuple[PredictionResponse, dict[str, Any]]:
         normalized_event = normalize_security_event(payload, source=source)
         return self.analyze_event(normalized_event), normalized_event
+
+    def decide_wazuh_event(
+        self,
+        payload: Mapping[str, Any],
+        include_normalized: bool = False,
+    ) -> WazuhDecisionResponse:
+        result, normalized_event, ingestion_id, processed_at = self.ingest_webhook_event(
+            payload=payload,
+            source="wazuh",
+        )
+
+        srcip = normalized_event.get("srcip")
+        should_block = bool(result.active_response_enabled and srcip)
+
+        if should_block:
+            decision_reason = "High-risk event: Random Forest recommends Wazuh firewall-drop active response."
+            block_request = WazuhBlockRequest(
+                command="firewall-drop",
+                srcip=str(srcip),
+                timeout=600,
+                reason=f"AI decision from AutomaticSOC (risk={result.risk_score}, label={result.label})",
+            )
+        elif result.active_response_enabled and not srcip:
+            decision_reason = "High risk detected, but source IP is missing so block action cannot be safely requested."
+            block_request = None
+        else:
+            decision_reason = "AI marked this event as monitor/allow. Do not block from Wazuh for this event."
+            block_request = None
+
+        return WazuhDecisionResponse(
+            status="decision_ready",
+            ingestion_id=ingestion_id,
+            source="wazuh",
+            processed_at=processed_at,
+            should_block=should_block,
+            decision_reason=decision_reason,
+            source_ip=str(srcip) if srcip else None,
+            result=result,
+            wazuh_block_request=block_request,
+            normalized_event=normalized_event if include_normalized else None,
+        )
 
     def ingest_webhook_event(
         self,

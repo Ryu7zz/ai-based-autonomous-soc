@@ -161,6 +161,21 @@ h2 {
   line-height: 1.65;
 }
 
+.wazuh-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.wazuh-controls input {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(5, 14, 23, 0.85);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
 .accent-button,
 .primary-button {
   border: 0;
@@ -283,6 +298,87 @@ textarea {
   min-height: 22px;
 }
 
+.wazuh-board {
+  margin-top: 20px;
+  padding: 24px;
+}
+
+.wazuh-board-controls {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.wazuh-board-controls input {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(5, 14, 23, 0.85);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.board-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 12px;
+  margin: 14px 0 16px;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.decision-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+  background: rgba(4, 12, 20, 0.78);
+}
+
+.decision-table th,
+.decision-table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  vertical-align: top;
+  font-size: 0.9rem;
+}
+
+.decision-table th {
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+
+.decision-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.decision-blocked {
+  background: rgba(255, 108, 122, 0.2);
+  color: #ffd8dd;
+}
+
+.decision-should_block {
+  background: rgba(255, 180, 91, 0.2);
+  color: #ffe2bf;
+}
+
+.decision-monitor {
+  background: rgba(91, 226, 211, 0.2);
+  color: #cffff8;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -316,6 +412,10 @@ textarea {
 
   textarea {
     min-height: 340px;
+  }
+
+  .board-metrics {
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
   }
 }
 

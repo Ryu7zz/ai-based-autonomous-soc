@@ -1,0 +1,11 @@
+# 1) Start app (for UI + docs screenshots)
+PYTHONPATH=. .venv/bin/uvicorn app.main:app --reload
+
+# 2) Show tests pass (terminal screenshot)
+PYTHONPATH=. .venv/bin/pytest tests -q
+
+# 3) Generate Wazuh dashboard objects (file + command screenshot)
+PYTHONPATH=. .venv/bin/python scripts/generate_wazuh_dashboard_ndjson.py
+
+# 4) Generate PPT artifacts (already prepared)
+PYTHONPATH=. .venv/bin/python scripts/prepare_ppt_artifacts.py

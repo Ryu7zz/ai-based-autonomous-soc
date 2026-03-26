@@ -385,6 +385,56 @@ def build_cicids_dataset(csv_path: Path, max_rows: int | None = None) -> pd.Data
     return _rows_from_cicids(raw)
 
 
+def rebalance_normal_attack_ratio(
+    dataframe: pd.DataFrame,
+    normal_ratio: float = 0.8,
+    seed: int = 7,
+) -> pd.DataFrame:
+    if "label" not in dataframe.columns:
+        raise ValueError("Dataset must include 'label' column for ratio balancing.")
+
+    df = dataframe.copy()
+    labels = df["label"].astype(str)
+    normal_df = df[labels == "Normal"]
+    attack_df = df[labels != "Normal"]
+    if normal_df.empty or attack_df.empty:
+        raise ValueError("CICIDS rebalance needs both Normal and Attack rows.")
+
+    target_normal_ratio = float(normal_ratio)
+    target_attack_ratio = 1.0 - target_normal_ratio
+    if not (0.0 < target_attack_ratio < 1.0):
+        raise ValueError("normal_ratio must be between 0 and 1.")
+
+    # Keep as many rows as possible while matching the desired ratio.
+    max_total_by_normal = int(len(normal_df) / target_normal_ratio)
+    max_total_by_attack = int(len(attack_df) / target_attack_ratio)
+    target_total = max(min(max_total_by_normal, max_total_by_attack), 2)
+
+    normal_target = int(round(target_total * target_normal_ratio))
+    attack_target = max(target_total - normal_target, 1)
+
+    sampled_normal = normal_df.sample(n=min(normal_target, len(normal_df)), random_state=seed)
+
+    attack_parts: list[pd.DataFrame] = []
+    attack_groups = [frame for _, frame in attack_df.groupby(attack_df["label"].astype(str))]
+    per_group = max(attack_target // max(len(attack_groups), 1), 1)
+    remaining = attack_target
+    for index, group in enumerate(attack_groups):
+        take = per_group if index < len(attack_groups) - 1 else remaining
+        sampled = group.sample(n=min(take, len(group)), random_state=seed + index)
+        attack_parts.append(sampled)
+        remaining = max(remaining - len(sampled), 0)
+
+    sampled_attack = pd.concat(attack_parts, ignore_index=False)
+    if len(sampled_attack) < attack_target:
+        extra_needed = attack_target - len(sampled_attack)
+        refill = attack_df.sample(n=min(extra_needed, len(attack_df)), random_state=seed + 97)
+        sampled_attack = pd.concat([sampled_attack, refill], ignore_index=False)
+
+    balanced = pd.concat([sampled_normal, sampled_attack], ignore_index=False)
+    return balanced.sample(frac=1.0, random_state=seed).reset_index(drop=True)
+
+
 def _train_from_dataframe(
     dataframe: pd.DataFrame,
     model_path: Path,
@@ -467,11 +517,20 @@ def train_cicids_model(
     csv_path: Path,
     model_path: Path = MODEL_PATH,
     max_rows: int | None = None,
+    normal_ratio: float = 0.8,
     seed: int = 7,
 ) -> ModelBundle:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     model_path.parent.mkdir(parents=True, exist_ok=True)
-    dataset = build_cicids_dataset(csv_path=csv_path, max_rows=max_rows)
+    original_dataset = build_cicids_dataset(csv_path=csv_path, max_rows=max_rows)
+    dataset = rebalance_normal_attack_ratio(
+        dataframe=original_dataset,
+        normal_ratio=normal_ratio,
+        seed=seed,
+    )
+    if len(dataset) < 100 and len(original_dataset) >= 100:
+        # Keep training usable on small synthetic inputs while preserving ratio for real CICIDS-scale datasets.
+        dataset = original_dataset
     return _train_from_dataframe(dataframe=dataset, model_path=model_path, seed=seed)
 
 

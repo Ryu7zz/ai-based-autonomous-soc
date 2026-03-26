@@ -1,0 +1,113 @@
+{
+  "ingestion_id": "e43abe56-38de-4987-8fb9-ee79eb2954a7",
+  "source": "wazuh",
+  "processed_at": "2026-03-26T02:38:25.370542+00:00",
+  "result": {
+    "label": "Brute Force",
+    "confidence": 0.74,
+    "risk_score": 76.7,
+    "severity": "high",
+    "summary": "185.44.9.10 -> 10.0.0.15:22 over tcp",
+    "recommended_actions": [
+      "Block the source IP on the firewall or Wazuh active response.",
+      "Force a credential reset for the targeted account or service.",
+      "Increase rate limits and MFA checks on the exposed login surface."
+    ],
+    "active_response_enabled": true,
+    "response_command": "iptables -A INPUT -s 185.44.9.10 -j DROP",
+    "rationale": [
+      "Model confidence for Brute Force is 74.0%.",
+      "Rule severity is elevated at level 12.",
+      "Multiple authentication failures suggest credential abuse.",
+      "The source IP appears to be external, increasing exposure risk."
+    ],
+    "features": {
+      "rule_level": 12.0,
+      "dest_port": 22.0,
+      "is_privileged_port": 1.0,
+      "is_ssh_port": 1.0,
+      "is_web_port": 0.0,
+      "protocol_code": 6.0,
+      "total_bytes": 14001.0,
+      "total_packets": 161.0,
+      "duration_seconds": 12.0,
+      "bytes_per_packet": 86.963,
+      "packets_per_second": 13.417,
+      "auth_failures": 20.0,
+      "same_source_hits": 4.0,
+      "severity_keyword_hits": 1.0,
+      "bruteforce_hint": 2.0,
+      "ddos_hint": 0.0,
+      "scan_hint": 0.0,
+      "malware_hint": 0.0,
+      "src_is_private": 0.0,
+      "dest_is_private": 1.0
+    }
+  },
+  "normalized_event": {
+    "timestamp": "2026-03-25T10:21:00Z",
+    "srcip": "185.44.9.10",
+    "destip": "10.0.0.15",
+    "destport": "22",
+    "protocol": "tcp",
+    "message": "Multiple authentication failures detected on sshd",
+    "action": null,
+    "attack_type": "authentication_failed, sshd",
+    "rule": {
+      "level": 12,
+      "description": "Multiple authentication failures detected on sshd",
+      "firedtimes": 4,
+      "id": null,
+      "groups": [
+        "authentication_failed",
+        "sshd"
+      ]
+    },
+    "network": {
+      "bytes": "14001",
+      "packets": "161",
+      "duration": 12.0,
+      "protocol": "tcp"
+    },
+    "auth": {
+      "failures": "20"
+    },
+    "event": {
+      "dataset": null,
+      "category": null,
+      "module": null,
+      "duration": 0.0
+    },
+    "agent": {
+      "name": "host-1"
+    },
+    "labels": {
+      "same_source_hits": 4
+    }
+  },
+  "raw_payload": {
+    "timestamp": "2026-03-25T10:21:00Z",
+    "rule": {
+      "level": 12,
+      "description": "Multiple authentication failures detected on sshd",
+      "firedtimes": 4,
+      "groups": [
+        "authentication_failed",
+        "sshd"
+      ]
+    },
+    "agent": {
+      "name": "host-1"
+    },
+    "data": {
+      "srcip": "185.44.9.10",
+      "dstip": "10.0.0.15",
+      "dstport": "22",
+      "proto": "tcp",
+      "bytes": "14001",
+      "packets": "161",
+      "duration": "12",
+      "failed_attempts": "20"
+    }
+  }
+}

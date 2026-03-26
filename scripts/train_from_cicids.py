@@ -15,6 +15,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train AutomaticSOC model from CIC-IDS CSV data.")
     parser.add_argument("csv_path", help="Path to a CIC-IDS CSV file or directory of CSV files.")
     parser.add_argument("--max-rows", type=int, default=250000, help="Maximum rows to load.")
+    parser.add_argument("--normal-ratio", type=float, default=0.8, help="Target Normal ratio (e.g. 0.8).")
     parser.add_argument("--seed", type=int, default=7, help="Random seed for training.")
     args = parser.parse_args()
 
@@ -22,6 +23,7 @@ def main() -> None:
     info = service.retrain_from_cicids(
         csv_path=Path(args.csv_path).expanduser(),
         max_rows=args.max_rows,
+        normal_ratio=args.normal_ratio,
         seed=args.seed,
     )
     print("CIC-IDS model training completed")

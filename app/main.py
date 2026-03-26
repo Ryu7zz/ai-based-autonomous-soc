@@ -29,7 +29,12 @@ from app.schemas import (
     RawAnalyzeResponse,
     SecurityEvent,
     StoredWebhookEvent,
+    WazuhDecisionResponse,
+    WazuhDecisionBoardResponse,
     TrainRequest,
+    WazuhBulkAnalyzeRequest,
+    WazuhBulkAnalyzeResponse,
+    WazuhTrainRequest,
     WebhookEventSummary,
     WebhookIngestResponse,
 )
@@ -73,6 +78,66 @@ def train_demo(
     return service.retrain_demo_model(samples=request.samples, seed=request.seed)
 
 
+@app.post("/api/train/wazuh", response_model=ModelInfo)
+def train_from_wazuh(
+    request: WazuhTrainRequest,
+    service: DetectionService = Depends(get_service),
+) -> ModelInfo:
+    try:
+        return service.retrain_from_wazuh(
+            limit=request.limit,
+            time_range=request.time_range,
+            seed=request.seed,
+        )
+    except Exception as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.post("/api/analyze/wazuh/bulk", response_model=WazuhBulkAnalyzeResponse)
+def analyze_wazuh_bulk(
+    request: WazuhBulkAnalyzeRequest,
+    service: DetectionService = Depends(get_service),
+) -> WazuhBulkAnalyzeResponse:
+    try:
+        return service.analyze_wazuh_bulk(
+            target_count=request.target_count,
+            batch_size=request.batch_size,
+            time_range=request.time_range,
+            include_samples=request.include_samples,
+            sample_size=request.sample_size,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.post("/api/wazuh/ai/decision", response_model=WazuhDecisionResponse)
+def wazuh_ai_decision(
+    payload: dict[str, Any],
+    include_normalized: bool = False,
+    x_webhook_token: str | None = Header(default=None, alias="X-Webhook-Token"),
+    service: DetectionService = Depends(get_service),
+) -> WazuhDecisionResponse:
+    _verify_webhook_token(x_webhook_token)
+    try:
+        return service.decide_wazuh_event(
+            payload=payload,
+            include_normalized=include_normalized,
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@app.get("/api/wazuh/decision-board", response_model=WazuhDecisionBoardResponse)
+def wazuh_decision_board(
+    limit: int = 200,
+    time_range: str = "24h",
+    service: DetectionService = Depends(get_service),
+) -> WazuhDecisionBoardResponse:
+    try:
+        return service.wazuh_decision_board(limit=limit, time_range=time_range)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
 @app.post("/api/train/cicids", response_model=ModelInfo)
 def train_cicids(
     request: CICIDSTrainRequest,
@@ -83,6 +148,7 @@ def train_cicids(
         return service.retrain_from_cicids(
             csv_path=csv_path,
             max_rows=request.max_rows,
+            normal_ratio=request.normal_ratio,
             seed=request.seed,
         )
     except (FileNotFoundError, ValueError) as error:

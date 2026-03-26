@@ -1,0 +1,62 @@
+{
+  "generated_at": "2026-03-26T03:42:33.851702+00:00",
+  "mode": "live",
+  "summary": {
+    "total_events": 4,
+    "block_true": 3,
+    "block_false": 1,
+    "rows": [
+      {
+        "event_name": "Brute force SSH burst",
+        "label": "Brute Force",
+        "risk_score": 77.24,
+        "should_block": true,
+        "source_ip": "185.44.9.10",
+        "decision_reason": "High-risk event: Random Forest recommends Wazuh firewall-drop active response.",
+        "wazuh_block_request": {
+          "command": "firewall-drop",
+          "srcip": "185.44.9.10",
+          "timeout": 600,
+          "reason": "AI decision from AutomaticSOC (risk=77.24, label=Brute Force)"
+        }
+      },
+      {
+        "event_name": "Port scan recon",
+        "label": "Port Scan",
+        "risk_score": 72.85,
+        "should_block": true,
+        "source_ip": "203.0.113.77",
+        "decision_reason": "High-risk event: Random Forest recommends Wazuh firewall-drop active response.",
+        "wazuh_block_request": {
+          "command": "firewall-drop",
+          "srcip": "203.0.113.77",
+          "timeout": 600,
+          "reason": "AI decision from AutomaticSOC (risk=72.85, label=Port Scan)"
+        }
+      },
+      {
+        "event_name": "DDoS traffic spike",
+        "label": "DDoS",
+        "risk_score": 78.2,
+        "should_block": true,
+        "source_ip": "198.51.100.44",
+        "decision_reason": "High-risk event: Random Forest recommends Wazuh firewall-drop active response.",
+        "wazuh_block_request": {
+          "command": "firewall-drop",
+          "srcip": "198.51.100.44",
+          "timeout": 600,
+          "reason": "AI decision from AutomaticSOC (risk=78.2, label=DDoS)"
+        }
+      },
+      {
+        "event_name": "Routine normal access",
+        "label": "Normal",
+        "risk_score": 37.0,
+        "should_block": false,
+        "source_ip": "10.10.1.9",
+        "decision_reason": "AI marked this event as monitor/allow. Do not block from Wazuh for this event.",
+        "wazuh_block_request": null
+      }
+    ]
+  }
+}
